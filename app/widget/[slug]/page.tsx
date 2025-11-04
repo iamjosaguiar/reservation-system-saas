@@ -2,9 +2,10 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import BookingForm from '@/components/booking/BookingForm';
 
-export default async function WidgetPage({ params }: { params: { slug: string } }) {
+export default async function WidgetPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const tenant = await prisma.tenant.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: {
       settings: true,
       businessHours: {

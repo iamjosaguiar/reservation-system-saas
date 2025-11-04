@@ -4,9 +4,10 @@ import { getCurrentUser } from '@/lib/auth-utils';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user || !user.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -14,7 +15,7 @@ export async function GET(
 
     const table = await prisma.table.findFirst({
       where: {
-        id: params.id,
+        id,
         tenantId: user.tenantId,
       },
     });
@@ -32,9 +33,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user || !user.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -44,7 +46,7 @@ export async function PUT(
 
     const table = await prisma.table.updateMany({
       where: {
-        id: params.id,
+        id,
         tenantId: user.tenantId,
       },
       data: {
@@ -68,9 +70,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user || !user.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -78,7 +81,7 @@ export async function DELETE(
 
     const table = await prisma.table.deleteMany({
       where: {
-        id: params.id,
+        id,
         tenantId: user.tenantId,
       },
     });

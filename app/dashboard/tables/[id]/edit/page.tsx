@@ -3,12 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import TableForm from '@/components/tables/TableForm';
 
-export default async function EditTablePage({ params }: { params: { id: string } }) {
+export default async function EditTablePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await requireTenant();
 
   const table = await prisma.table.findFirst({
     where: {
-      id: params.id,
+      id,
       tenantId: user.tenantId!,
     },
   });

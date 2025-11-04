@@ -4,15 +4,16 @@ import { getCurrentUser } from '@/lib/auth-utils';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const where: any = { id: params.id };
+    const where: any = { id };
 
     // Tenant owners/staff can see all their tenant's reservations
     if (user.tenantId) {
@@ -63,9 +64,10 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user || !user.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -83,7 +85,7 @@ export async function PUT(
 
     const reservation = await prisma.reservation.updateMany({
       where: {
-        id: params.id,
+        id,
         tenantId: user.tenantId,
       },
       data: updateData,
@@ -102,15 +104,16 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const where: any = { id: params.id };
+    const where: any = { id };
 
     // Allow tenant owners to delete any reservation, customers only their own
     if (user.tenantId) {

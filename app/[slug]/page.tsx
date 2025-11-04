@@ -2,9 +2,10 @@ import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
-export default async function BusinessPage({ params }: { params: { slug: string } }) {
+export default async function BusinessPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const tenant = await prisma.tenant.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     include: {
       settings: true,
       businessHours: {
