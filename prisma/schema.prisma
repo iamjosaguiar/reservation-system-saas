@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tenant/Business Model
+model Tenant {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique // Used for subdomain/URL
+  email         String
+  phone         String?
+  address       String?
+  description   String?
+  logo          String?
+  website       String?
+
+  // Multi-tenant branding
+  primaryColor  String   @default("#4F46E5") // indigo-600
+  customDomain  String?  @unique
+
+  // Subscription info
+  subscriptionTier  SubscriptionTier @default(FREE)
+  subscriptionStatus SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId  String?  @unique
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  users         User[]
+  tables        Table[]
+  reservations  Reservation[]
+  businessHours BusinessHours[]
+  settings      TenantSettings?
+  payments      Payment[]
+
+  @@index([slug])
+}
+
+// User Model (both business owners and customers)
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  phone         String?
+  password      String?  // Hashed
+  role          UserRole @default(CUSTOMER)
+
+  // Multi-tenant - users can belong to a tenant (for owners/staff)
+  tenantId      String?
+  tenant        Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // NextAuth fields
+  emailVerified DateTime?
+  image         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  reservations  Reservation[]
+  accounts      Account[]
+  sessions      Session[]
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+// NextAuth Account model
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// NextAuth Session model
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// NextAuth Verification Token
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Table Model
+model Table {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name         String   // e.g., "Table 1", "Bar Counter"
+  capacity     Int      // Number of seats
+  isActive     Boolean  @default(true)
+  location     String?  // e.g., "Window", "Patio", "Inside"
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  reservations Reservation[]
+
+  @@index([tenantId])
+}
+
+// Reservation Model
+model Reservation {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tableId       String?
+  table         Table?   @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  // Reservation details
+  date          DateTime // Date of reservation
+  time          DateTime // Time slot
+  partySize     Int      // Number of guests
+  duration      Int      @default(120) // Duration in minutes
+
+  status        ReservationStatus @default(PENDING)
+
+  // Contact info (for walk-ins or guest bookings)
+  guestName     String?
+  guestEmail    String?
+  guestPhone    String?
+
+  specialRequests String?
+
+  // Notifications
+  reminderSent  Boolean  @default(false)
+  confirmationSent Boolean @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([date])
+  @@index([status])
+}
+
+// Business Hours Model
+model BusinessHours {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  dayOfWeek    Int      // 0 = Sunday, 1 = Monday, etc.
+  openTime     String   // e.g., "10:00"
+  closeTime    String   // e.g., "22:00"
+  isClosed     Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tenantId, dayOfWeek])
+  @@index([tenantId])
+}
+
+// Tenant Settings Model
+model TenantSettings {
+  id                    String   @id @default(cuid())
+  tenantId              String   @unique
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Booking settings
+  maxAdvanceBookingDays Int      @default(30)
+  minAdvanceBookingHours Int     @default(2)
+  defaultReservationDuration Int @default(120) // minutes
+
+  // Notifications
+  emailNotificationsEnabled Boolean @default(true)
+  smsNotificationsEnabled   Boolean @default(false) // Premium feature
+  reminderHoursBefore       Int     @default(24)
+
+  // Branding
+  showPoweredBy         Boolean  @default(true) // Free tier shows branding
+  customCss             String?
+
+  // Widget settings
+  widgetEnabled         Boolean  @default(true)
+  widgetBackgroundColor String   @default("#FFFFFF")
+  widgetTextColor       String   @default("#000000")
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// Payment Model
+model Payment {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  stripePaymentId   String   @unique
+  amount            Int      // Amount in cents
+  currency          String   @default("usd")
+  status            String
+
+  subscriptionTier  SubscriptionTier
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+
+  createdAt         DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+// Enums
+enum UserRole {
+  CUSTOMER
+  STAFF
+  OWNER
+  ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  TRIALING
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  SEATED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
