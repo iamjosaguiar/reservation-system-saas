@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { CheckCircle2, Loader2 } from 'lucide-react';
 
 interface BookingFormProps {
   tenant: {
@@ -32,6 +40,7 @@ export default function BookingForm({ tenant }: BookingFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [partySize, setPartySize] = useState<string>('');
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,7 +57,7 @@ export default function BookingForm({ tenant }: BookingFormProps) {
       tenantId: tenant.id,
       date: dateTime.toISOString(),
       time: dateTime.toISOString(),
-      partySize: parseInt(formData.get('partySize') as string),
+      partySize: parseInt(partySize),
       guestName: formData.get('guestName'),
       guestEmail: formData.get('guestEmail'),
       guestPhone: formData.get('guestPhone'),
@@ -87,159 +96,153 @@ export default function BookingForm({ tenant }: BookingFormProps) {
 
   if (success) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-          <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Reservation Submitted!</h3>
-        <p className="text-gray-600 mb-4">
-          Thank you for your reservation. We'll send you a confirmation email shortly.
-        </p>
-        <a
-          href={`/${tenant.slug}`}
-          className="inline-block px-6 py-3 text-white rounded-lg"
-          style={{ backgroundColor: tenant.primaryColor }}
-        >
-          Back to {tenant.name}
-        </a>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2">Reservation Submitted!</h3>
+            <p className="text-muted-foreground mb-6">
+              Thank you for your reservation. We'll send you a confirmation email shortly.
+            </p>
+            <Button
+              onClick={() => router.push(`/${tenant.slug}`)}
+              style={{ backgroundColor: tenant.primaryColor }}
+            >
+              Back to {tenant.name}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-lg">
-          {error}
-        </div>
-      )}
+    <Card>
+      <CardHeader>
+        <CardTitle>Make a Reservation</CardTitle>
+        <CardDescription>
+          Fill out the form below to book your table at {tenant.name}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-            Date *
-          </label>
-          <input
-            id="date"
-            name="date"
-            type="date"
-            required
-            min={minDate.toISOString().split('T')[0]}
-            max={maxDate.toISOString().split('T')[0]}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="date">Date *</Label>
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                required
+                min={minDate.toISOString().split('T')[0]}
+                max={maxDate.toISOString().split('T')[0]}
+              />
+            </div>
 
-        <div>
-          <label htmlFor="time" className="block text-sm font-medium text-gray-700 mb-1">
-            Time *
-          </label>
-          <input
-            id="time"
-            name="time"
-            type="time"
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="partySize" className="block text-sm font-medium text-gray-700 mb-1">
-          Party Size *
-        </label>
-        <select
-          id="partySize"
-          name="partySize"
-          required
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        >
-          <option value="">Select number of guests</option>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-            <option key={num} value={num}>
-              {num} {num === 1 ? 'Guest' : 'Guests'}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <hr className="my-6" />
-
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
-
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="guestName" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name *
-            </label>
-            <input
-              id="guestName"
-              name="guestName"
-              type="text"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="John Doe"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="time">Time *</Label>
+              <Input
+                id="time"
+                name="time"
+                type="time"
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="guestEmail" className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
-            <input
-              id="guestEmail"
-              name="guestEmail"
-              type="email"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="john@example.com"
-            />
+          <div className="space-y-2">
+            <Label htmlFor="partySize">Party Size *</Label>
+            <Select value={partySize} onValueChange={setPartySize} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Select number of guests" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} {num === 1 ? 'Guest' : 'Guests'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label htmlFor="guestPhone" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number *
-            </label>
-            <input
-              id="guestPhone"
-              name="guestPhone"
-              type="tel"
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="+1 (555) 123-4567"
-            />
+          <Separator />
+
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Contact Information</h3>
+
+            <div className="space-y-2">
+              <Label htmlFor="guestName">Full Name *</Label>
+              <Input
+                id="guestName"
+                name="guestName"
+                type="text"
+                required
+                placeholder="John Doe"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="guestEmail">Email *</Label>
+              <Input
+                id="guestEmail"
+                name="guestEmail"
+                type="email"
+                required
+                placeholder="john@example.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="guestPhone">Phone Number *</Label>
+              <Input
+                id="guestPhone"
+                name="guestPhone"
+                type="tel"
+                required
+                placeholder="+1 (555) 123-4567"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="specialRequests">Special Requests (Optional)</Label>
+              <Input
+                id="specialRequests"
+                name="specialRequests"
+                placeholder="e.g., Window seat, high chair needed, celebrating birthday..."
+              />
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="specialRequests" className="block text-sm font-medium text-gray-700 mb-1">
-              Special Requests (Optional)
-            </label>
-            <textarea
-              id="specialRequests"
-              name="specialRequests"
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="e.g., Window seat, high chair needed, celebrating birthday..."
-            />
-          </div>
-        </div>
-      </div>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full"
+            style={{ backgroundColor: tenant.primaryColor }}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Complete Reservation'
+            )}
+          </Button>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-3 px-4 text-white font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{ backgroundColor: tenant.primaryColor }}
-      >
-        {loading ? 'Submitting...' : 'Complete Reservation'}
-      </button>
-
-      <p className="text-sm text-gray-500 text-center">
-        By making a reservation, you agree to our terms and conditions.
-      </p>
-    </form>
+          <p className="text-sm text-muted-foreground text-center">
+            By making a reservation, you agree to our terms and conditions.
+          </p>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
