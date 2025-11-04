@@ -12,6 +12,7 @@ export const {
   signOut,
 } = NextAuth({
   ...authConfig,
+  // @ts-expect-error - Type mismatch between NextAuth and Prisma adapter versions
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt',

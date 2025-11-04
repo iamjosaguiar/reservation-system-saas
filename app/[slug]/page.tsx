@@ -80,7 +80,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ slug:
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Opening Hours</h3>
               <div className="space-y-2">
-                {tenant.businessHours.map((hours) => (
+                {tenant.businessHours.map((hours: { id: string; dayOfWeek: number; openTime: string; closeTime: string; isClosed: boolean }) => (
                   <div key={hours.id} className="flex justify-between py-2 border-b border-gray-100">
                     <span className="font-medium text-gray-700">
                       {dayNames[hours.dayOfWeek]}
